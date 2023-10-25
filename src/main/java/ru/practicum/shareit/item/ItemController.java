@@ -11,12 +11,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.service.ItemService;
 
+import javax.validation.Valid;
 import java.util.List;
 
-/**
- * TODO Sprint add-controllers.
- */
+import static ru.practicum.shareit.constants.Constants.USER_ID;
+
 @RestController
 @RequestMapping("/items")
 @RequiredArgsConstructor
@@ -24,31 +25,31 @@ public class ItemController {
     private final ItemService itemService;
 
     @PostMapping
-    public ItemDto add(@RequestHeader("X-Sharer-User-Id") Long userId,
-                       @RequestBody ItemDto dto) {
+    public ItemDto add(@RequestHeader(USER_ID) Long userId,
+                       @RequestBody @Valid ItemDto dto) {
         return itemService.addNewItem(userId, dto);
     }
 
     @PatchMapping("/{itemId}")
-    public ItemDto updateItem(@RequestHeader("X-Sharer-User-Id") Long userId,
+    public ItemDto updateItem(@RequestHeader(USER_ID) Long userId,
                               @PathVariable Long itemId,
                               @RequestBody ItemDto dto) {
         return itemService.updateItem(userId, itemId, dto);
     }
 
     @GetMapping("/{itemId}")
-    public ItemDto getItem(@RequestHeader("X-Sharer-User-Id") Long userId,
+    public ItemDto getItem(@RequestHeader(USER_ID) Long userId,
                            @PathVariable Long itemId) {
         return itemService.getItem(userId, itemId);
     }
 
     @GetMapping
-    public List<ItemDto> get(@RequestHeader("X-Sharer-User-Id") Long userId) {
+    public List<ItemDto> get(@RequestHeader(USER_ID) Long userId) {
         return itemService.getItems(userId);
     }
 
     @GetMapping("/search")
-    public List<ItemDto> search(@RequestHeader("X-Sharer-User-Id") Long userId,
+    public List<ItemDto> search(@RequestHeader(USER_ID) Long userId,
                                 @RequestParam String text) {
         return itemService.findByText(userId, text);
     }

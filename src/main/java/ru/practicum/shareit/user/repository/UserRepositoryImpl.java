@@ -1,32 +1,33 @@
 package ru.practicum.shareit.user.repository;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import ru.practicum.shareit.exception.EntityNotFoundException;
-import ru.practicum.shareit.exception.EntityValidationException;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.model.UserMapper;
 
-import javax.validation.Valid;
 import javax.validation.ValidationException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Repository
+@RequiredArgsConstructor
 public class UserRepositoryImpl implements UserRepository {
     private final Map<Long, User> userIdToUser = new HashMap<>();
+    private final Set<String> userEmail = new HashSet<>();
     private Long id = 1L;
 
     @Override
-    public User addUser(@Valid UserDto dto) {
-        if (dto.getEmail() == null || dto.getName() == null) {
-            throw new EntityValidationException("Некорректно заполнены данные!");
-        }
+    public User addUser(UserDto dto) {
         checkIfEmailAlreadyExists(dto.getEmail());
         dto.setId(generateId());
         if (!userIdToUser.containsKey(dto.getId())) {
             userIdToUser.put(dto.getId(), UserMapper.toUser(dto));
+            userEmail.add(dto.getEmail());
         } else {
             throw new ValidationException("Пользователь уже существует!");
         }
@@ -43,6 +44,9 @@ public class UserRepositoryImpl implements UserRepository {
         }
         if (dto.getEmail() == null) {
             dto.setEmail(user.getEmail());
+        } else {
+            userEmail.remove(user.getEmail());
+            userEmail.add(dto.getEmail());
         }
         userIdToUser.put(dto.getId(), UserMapper.toUser(dto));
         return getUserById(dto.getId());
@@ -62,7 +66,8 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public void deleteUserById(Long id) {
         checkIfUserExists(id);
-        userIdToUser.remove(id);
+        User user = userIdToUser.remove(id);
+        userEmail.remove(user.getEmail());
     }
 
     private void checkIfUserExists(Long id) {
@@ -72,13 +77,14 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     private void checkIfEmailAlreadyExists(String email) {
-        if (userIdToUser.values().stream().anyMatch(user -> user.getEmail().equals(email))) {
+        if (userEmail.contains(email)) {
             throw new ValidationException("Пользователь с таким email уже существует!");
         }
     }
 
     private void checkIfEmailAlreadyExists(String email, Long userId) {
-        if (userIdToUser.values().stream().anyMatch(user -> user.getEmail().equals(email) && !user.getId().equals(userId))) {
+        if (userIdToUser.values().stream()
+                .anyMatch(user -> user.getEmail().equals(email) && !user.getId().equals(userId))) {
             throw new ValidationException("Пользователь с таким email уже существует!");
         }
     }

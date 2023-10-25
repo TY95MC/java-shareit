@@ -3,7 +3,6 @@ package ru.practicum.shareit.item.repository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import ru.practicum.shareit.exception.EntityNotFoundException;
-import ru.practicum.shareit.exception.EntityValidationException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.model.ItemMapper;
@@ -16,7 +15,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Repository
@@ -31,12 +29,6 @@ public class ItemRepositoryImpl implements ItemRepository {
         if (dto.getId() != null && itemIdToItem.containsKey(dto.getId())) {
             throw new ValidationException("Такая вещь уже существует!");
         }
-
-        if (dto.getName() == null || dto.getDescription() == null || dto.getAvailable() == null ||
-                dto.getName().isBlank() || dto.getDescription().isBlank()) {
-            throw new EntityValidationException("Некорректно заполнены данные!");
-        }
-
         User user = userRepository.getUserById(userId);
         dto.setId(generateId());
         itemIdToItem.put(dto.getId(), ItemMapper.toItem(dto, user, null));
@@ -65,14 +57,10 @@ public class ItemRepositoryImpl implements ItemRepository {
 
     @Override
     public Item getItem(Long userId, Long itemId) {
-        Optional<Item> tmp = itemIdToItem.values().stream()
+        return itemIdToItem.values().stream()
                 .filter(item -> Objects.equals(item.getId(), itemId))
-                .findFirst();
-        if (tmp.isPresent()) {
-            return tmp.get();
-        } else {
-            throw new EntityNotFoundException("Такая вещь не существует!");
-        }
+                .findFirst()
+                .orElseThrow(() -> new EntityNotFoundException("Вещь не найдена!"));
     }
 
     @Override
