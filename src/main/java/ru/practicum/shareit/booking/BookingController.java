@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.model.State;
+import ru.practicum.shareit.booking.model.Status;
 import ru.practicum.shareit.booking.service.BookingService;
 
 import javax.validation.Valid;
@@ -30,6 +31,7 @@ public class BookingController {
     @PostMapping
     public Booking create(@RequestHeader(USER_ID) Long userId,
                              @RequestBody @Valid BookingDto dto) {
+        dto.setStatus(Status.WAITING);
         return bookingService.create(userId, dto);
     }
 

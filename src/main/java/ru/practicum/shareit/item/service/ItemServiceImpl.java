@@ -9,14 +9,14 @@ import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.CommentDto;
 import ru.practicum.shareit.item.model.CommentDtoCommentMapper;
-import ru.practicum.shareit.item.repository.CommentRepository;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.model.ItemDtoItemMapper;
+import ru.practicum.shareit.item.repository.CommentRepository;
 import ru.practicum.shareit.item.repository.ItemRepository;
-import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,24 +34,31 @@ public class ItemServiceImpl implements ItemService {
     public ItemDto addNewItem(Long userId, ItemDto dto) {
         checkIfUserOrItemExists(userId, null);
         if (dto.getId() == null) {
+            // user = ;
             Item item = mapper.mapItemDtoToItem(dto, userRepository.getReferenceById(userId));
-            return mapper.mapItemToItemDto(itemRepository.save(item));
+            return mapper.mapItemToItemDto(itemRepository.saveAndFlush(item));
         }
         throw new EntityValidationException("Проверьте корректность данных новой вещи!");
     }
 
     @Override
     public ItemDto updateItem(Long userId, Long itemId, ItemDto dto) {
-        checkIfUserOrItemExists(userId, itemId);
         checkIfItemBelongsToUser(itemId, userId);
-        User user = userRepository.getReferenceById(userId);
-        Item item = mapper.mapItemDtoToItem(dto, user);
-        return mapper.mapItemToItemDto(itemRepository.save(item));
+        Item item = itemRepository.getReferenceById(itemId);
+        if (dto.getDescription() != null) {
+            item.setDescription(dto.getDescription());
+        }
+        if (dto.getName() != null) {
+            item.setName(dto.getName());
+        }
+        if (dto.getAvailable() != null) {
+            item.setAvailable(dto.getAvailable());
+        }
+        return mapper.mapItemToItemDto(itemRepository.saveAndFlush(item));
     }
 
     @Override
     public ItemDto getItem(Long userId, Long itemId) {
-        checkIfUserOrItemExists(userId, itemId);
         checkIfItemBelongsToUser(itemId, userId);
         return mapper.mapItemToItemDto(itemRepository.getReferenceById(itemId));
     }
@@ -67,8 +74,12 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public List<ItemDto> findByText(Long userId, String text) {
         checkIfUserOrItemExists(userId, null);
-        return itemRepository.findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCaseAndIsAvailable(text, text, true)
+        if (text.isBlank() || text.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return itemRepository.findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(text, text)
                 .stream()
+                .filter(Item::getAvailable)
                 .map(mapper::mapItemToItemDto)
                 .collect(Collectors.toUnmodifiableList());
     }
@@ -82,13 +93,13 @@ public class ItemServiceImpl implements ItemService {
                 userRepository.getReferenceById(userId),
                 itemRepository.getReferenceById(itemId)
         );
-        return commentMapper.commentToCommentDto(commentRepository.save(comment));
+        return commentMapper.commentToCommentDto(commentRepository.saveAndFlush(comment));
     }
 
     @Override
     public List<CommentDto> getItemComments(Long itemId) {
         checkIfUserOrItemExists(null, itemId);
-        return commentRepository.findAllByItemById(itemId).stream()
+        return commentRepository.findAllByItemId(itemId).stream()
                 .map(commentMapper::commentToCommentDto)
                 .collect(Collectors.toUnmodifiableList());
     }
@@ -96,7 +107,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public List<CommentDto> getUserItemsComments(Long userId) {
         checkIfUserOrItemExists(userId, null);
-        return commentRepository.findAllByAuthorById(userId).stream()
+        return commentRepository.findAllByAuthorId(userId).stream()
                 .map(commentMapper::commentToCommentDto)
                 .collect(Collectors.toUnmodifiableList());
     }
@@ -111,13 +122,10 @@ public class ItemServiceImpl implements ItemService {
     }
 
     private void checkIfItemBelongsToUser(Long itemId, Long userId) {
-        if (itemRepository.existsById(itemId) && userRepository.existsById(userId)) {
-            Item item = itemRepository.getReferenceById(itemId);
-            User user = userRepository.getReferenceById(userId);
-            if (!item.getOwner().equals(user)) {
-                throw new EntityValidationException("Проверьте корректность данных вещи либо ее владельца!");
-            }
+        checkIfUserOrItemExists(userId, itemId);
+        Item item = itemRepository.getReferenceById(itemId);
+        if (item.getOwner().getId() != userId) {
+            throw new EntityValidationException("Данный пользователь не является владельцем вещи!");
         }
-        throw new EntityValidationException("Проверьте корректность данных вещи либо ее владельца!");
     }
 }

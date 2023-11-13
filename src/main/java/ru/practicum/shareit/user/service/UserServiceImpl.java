@@ -12,7 +12,6 @@ import ru.practicum.shareit.user.repository.UserRepository;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -27,16 +26,20 @@ public class UserServiceImpl implements UserService {
             throw new EntityValidationException("Новый пользователь не может иметь ID!");
         }
         User user = mapper.mapUserDtoToUser(dto);
-        checkIfEmailIsNotReserved(user);
-        return repository.save(user);
+        return repository.saveAndFlush(user);
     }
 
     @Override
     public User updateUser(UserDto dto) {
         checkIfExistsById(dto.getId());
-        User user = mapper.mapUserDtoToUser(dto);
-        checkIfEmailIsNotReserved(user);
-        return repository.save(user);
+        User user = repository.getReferenceById(dto.getId());
+        if (dto.getName() != null) {
+            user.setName(dto.getName());
+        }
+        if (dto.getEmail() != null) {
+            user.setEmail(dto.getEmail());
+        }
+        return repository.saveAndFlush(user);
     }
 
     @Override
@@ -54,17 +57,12 @@ public class UserServiceImpl implements UserService {
     public void deleteUserById(Long id) {
         checkIfExistsById(id);
         repository.deleteById(id);
+        repository.flush();
     }
 
     private void checkIfExistsById(Long id) {
         if (!repository.existsById(id)) {
             throw new EntityNotFoundException("Пользователя не существует!");
         }
-    }
-
-    private boolean checkIfEmailIsNotReserved(User user) {
-        User tmp = repository.findFirstByEmail(user.getEmail());
-        return (tmp.getEmail() == null ||
-                user.getId() == tmp.getId() && Objects.equals(user.getEmail(), tmp.getEmail()));
     }
 }

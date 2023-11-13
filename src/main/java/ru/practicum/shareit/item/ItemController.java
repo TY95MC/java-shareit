@@ -62,13 +62,13 @@ public class ItemController {
         return itemService.addComment(userId, itemId, comment);
     }
 
-    @GetMapping("/{itemId}")
-    public List<CommentDto> getCommentsOfItem(@PathVariable @NotNull @Positive Long itemId) {
-        return itemService.getItemComments(itemId);
-    }
-
-    @GetMapping
-    public List<CommentDto> getCommentsOfUserItems(@RequestHeader(USER_ID) @NotNull @Positive Long userId) {
-        return itemService.getUserItemsComments(userId);
-    }
+//    @GetMapping("/{itemId}")
+//    public List<CommentDto> getCommentsOfItem(@PathVariable @NotNull @Positive Long itemId) {
+//        return itemService.getItemComments(itemId);
+//    }
+//
+//    @GetMapping
+//    public List<CommentDto> getCommentsOfUserItems(@RequestHeader(USER_ID) @NotNull @Positive Long userId) {
+//        return itemService.getUserItemsComments(userId);
+//    }
 }

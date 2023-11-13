@@ -10,6 +10,7 @@ import java.util.List;
 public interface CommentDtoCommentMapper {
     @Mapping(target = "authorName", source = "author.name")
     CommentDto commentToCommentDto(Comment comment);
+
     @Mapping(target = "author", source = "user")
     @Mapping(target = "author.id", source = "user.id")
     @Mapping(target = "author.name", source = "user.name")
@@ -17,5 +18,6 @@ public interface CommentDtoCommentMapper {
     @Mapping(target = "item.name", source = "item.name")
     @Mapping(target = "id", source = "commentDto.id")
     Comment commentDtoToComment(CommentDto commentDto, User user, Item item);
+
     List<CommentDto> commentsToCommentDtos(List<Comment> list);
 }

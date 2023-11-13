@@ -12,6 +12,7 @@ import ru.practicum.shareit.exception.EntityNotFoundException;
 import ru.practicum.shareit.exception.EntityValidationException;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
+import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
 import java.time.LocalDateTime;
@@ -27,37 +28,36 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public Booking create(Long userId, BookingDto dto) {
-        checkIfUserOrItemOrBookingExists(userId, dto.getItemId(), null);
+        if (dto.getStart().equals(dto.getEnd()) || dto.getStart().isAfter(dto.getEnd())) {
+            throw new EntityValidationException("Некорректные начало и конец!");
+        }
+        User user = userRepository.getReferenceById(userId);
         Item item = itemRepository.getReferenceById(dto.getItemId());
-        checkIfItemIsAvailable(item.getId());
-        checkIfItemBelongsToUser(dto.getItemId(), userId);
+        checkIfItemNotBelongsToBooker(dto.getItemId(), userId);
         Booking booking = Booking.builder()
                 .start(dto.getStart())
                 .end(dto.getEnd())
-                .item(itemRepository.getReferenceById(dto.getItemId()))
-                .booker(userRepository.getReferenceById(userId))
-                .status(Status.WAITING)
+                .item(item)
+                .booker(user)
+                .status(dto.getStatus())
                 .build();
-        return bookingRepository.save(booking);
+        return bookingRepository.saveAndFlush(booking);
     }
 
     @Override
     public Booking approve(Long userId, Long bookingId, boolean approved) {
-        checkIfUserOrItemOrBookingExists(userId, null, bookingId);
         Booking booking = bookingRepository.getReferenceById(bookingId);
-        checkIfItemIsAvailable(booking.getItem().getId());
-        checkIfItemBelongsToUser(booking.getItem().getId(), booking.getBooker().getId());
+        checkIfItemNotBelongsToBooker(booking.getItem().getId(), booking.getBooker().getId());
         if (userId != booking.getItem().getOwner().getId()) {
             throw new EntityValidationException("Только владелец вещи может подтверждать бронь!");
         } else {
-            //approved ? booking.setStatus(Status.APPROVED) : booking.setStatus(Status.REJECTED);
             if (approved) {
                 booking.setStatus(Status.APPROVED);
             } else {
                 booking.setStatus(Status.REJECTED);
             }
         }
-        return bookingRepository.save(booking);
+        return bookingRepository.saveAndFlush(booking);
     }
 
     @Override
@@ -84,9 +84,9 @@ public class BookingServiceImpl implements BookingService {
             case FUTURE:
                 return bookingRepository.findAllByBookerIdAndStartIsAfterOrderByStartDesc(userId, LocalDateTime.now());
             case WAITING:
-                return bookingRepository.findAllByBookerIdAndItemStatusOrderByStartDesc(userId, Status.WAITING);
+                return bookingRepository.findAllByBookerIdAndStatusOrderByStartDesc(userId, Status.WAITING);
             case REJECTED:
-                return bookingRepository.findAllByBookerIdAndItemStatusOrderByStartDesc(userId, Status.REJECTED);
+                return bookingRepository.findAllByBookerIdAndStatusOrderByStartDesc(userId, Status.REJECTED);
             default:
                 throw new EntityNotFoundException("Unknown state");
         }
@@ -110,10 +110,10 @@ public class BookingServiceImpl implements BookingService {
                 return bookingRepository.findAllByItemOwnerIdAndStartIsAfterOrderByStartDesc(userId, LocalDateTime.now());
 
             case WAITING:
-                return bookingRepository.findAllByItemOwnerIdAndItemStatusOrderByStartDesc(userId, Status.WAITING);
+                return bookingRepository.findAllByItemOwnerIdAndStatusOrderByStartDesc(userId, Status.WAITING);
 
             case REJECTED:
-                return bookingRepository.findAllByItemOwnerIdAndItemStatusOrderByStartDesc(userId, Status.REJECTED);
+                return bookingRepository.findAllByItemOwnerIdAndStatusOrderByStartDesc(userId, Status.REJECTED);
 
             default:
                 throw new EntityNotFoundException("Unknown state");
@@ -132,16 +132,18 @@ public class BookingServiceImpl implements BookingService {
         }
     }
 
-    private void checkIfItemBelongsToUser(Long itemId, Long userId) {
+    private void checkIfItemNotBelongsToBooker(Long itemId, Long bookerId) {
+        checkIfUserOrItemOrBookingExists(bookerId, itemId, null);
+        checkIfItemIsAvailable(itemId);
         Item item = itemRepository.getReferenceById(itemId);
-        if (item.getOwner().getId() == userId) {
+        if (item.getOwner().getId() == bookerId) {
             throw new EntityValidationException("Пользователь не может бронировать собственную вещь!");
         }
     }
 
     private void checkIfItemIsAvailable(Long itemId) {
         Item item = itemRepository.getReferenceById(itemId);
-        if (!item.getIsAvailable()) {
+        if (!item.getAvailable()) {
             throw new EntityValidationException("Вещь недоступна к бронированию!");
         }
     }
