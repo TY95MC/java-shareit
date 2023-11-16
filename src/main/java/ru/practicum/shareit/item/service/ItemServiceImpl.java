@@ -21,6 +21,7 @@ import ru.practicum.shareit.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -70,7 +71,7 @@ public class ItemServiceImpl implements ItemService {
         checkIfUserOrItemExists(userId, itemId);
         Item item = itemRepository.getReferenceById(itemId);
 
-        if (item.getOwner().getId() == userId) {
+        if (Objects.equals(item.getOwner().getId(), userId)) {
             return mapToItemDtoFull(ItemMapper.mapToItemDto(item));
         } else {
             return mapToItemDtoWithComments(ItemMapper.mapToItemDto(item));
@@ -131,7 +132,7 @@ public class ItemServiceImpl implements ItemService {
     private ItemDto mapToItemDtoFull(ItemDto dto) {
         BookingInfoDto last = bookingService.getLastBooking(dto.getId());
         BookingInfoDto next = bookingService.getNextBooking(dto.getId());
-        dto = mapToItemDtoWithComments(dto);
+        mapToItemDtoWithComments(dto);
 
         if (last != null) {
             dto.setLastBooking(last);

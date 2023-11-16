@@ -19,6 +19,7 @@ import ru.practicum.shareit.user.repository.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -41,7 +42,7 @@ public class BookingServiceImpl implements BookingService {
 
         Item item = itemRepository.getReferenceById(dto.getItemId());
 
-        if (item.getOwner().getId() == userId) {
+        if (Objects.equals(item.getOwner().getId(), userId)) {
             throw new EntityNotFoundException("Владелец не может бронировать собственную вещь!");
         }
 
@@ -68,7 +69,7 @@ public class BookingServiceImpl implements BookingService {
 
         checkIfItemNotBelongsToBooker(booking.getItem().getId(), booking.getBooker().getId());
 
-        if (userId != booking.getItem().getOwner().getId()) {
+        if (!Objects.equals(userId, booking.getItem().getOwner().getId())) {
             throw new EntityNotFoundException("Только владелец вещи может подтверждать бронь!");
         } else {
             if (approved) {
@@ -86,7 +87,7 @@ public class BookingServiceImpl implements BookingService {
         checkIfUserOrItemOrBookingExists(userId, null, bookingId);
         Booking booking = bookingRepository.getReferenceById(bookingId);
 
-        if (booking.getBooker().getId() == userId || booking.getItem().getOwner().getId() == userId) {
+        if (Objects.equals(booking.getBooker().getId(), userId) || Objects.equals(booking.getItem().getOwner().getId(), userId)) {
             return mapToBookingDtoFull(BookingMapper.mapToBookingDto(booking), booking);
         }
         throw new EntityNotFoundException("Просматривать могут только владелец вещи, либо арендатор!");
@@ -223,7 +224,7 @@ public class BookingServiceImpl implements BookingService {
         checkIfItemIsAvailable(itemId);
         Item item = itemRepository.getReferenceById(itemId);
 
-        if (item.getOwner().getId() == bookerId) {
+        if (Objects.equals(item.getOwner().getId(), bookerId)) {
             throw new EntityValidationException("Пользователь не может бронировать собственную вещь!");
         }
     }
