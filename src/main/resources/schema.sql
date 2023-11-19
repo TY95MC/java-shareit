@@ -27,6 +27,6 @@ create TABLE IF NOT EXISTS comments (
     text VARCHAR(1000) NOT NULL,
     item_id BIGINT REFERENCES items (id) ON DELETE CASCADE,
     author_id BIGINT REFERENCES users (id) ON DELETE CASCADE,
-    created TIMESTAMP
+    created TIMESTAMP WITHOUT TIME ZONE
 );
 

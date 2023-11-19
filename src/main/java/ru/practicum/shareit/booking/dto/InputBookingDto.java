@@ -23,11 +23,9 @@ public class InputBookingDto {
     private Long itemId;
     @FutureOrPresent
     @NotNull
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime start;
     @FutureOrPresent
     @NotNull
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime end;
     private Status status;
 }

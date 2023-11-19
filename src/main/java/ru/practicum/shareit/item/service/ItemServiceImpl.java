@@ -20,6 +20,7 @@ import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -116,8 +117,8 @@ public class ItemServiceImpl implements ItemService {
             throw new EntityValidationException("Пользователь еще не арендовал данную вещь!");
         }
 
-        commentDto.setCreated(LocalDateTime.now());
         Comment comment = commentMapper.mapCommentDtoToComment(commentDto);
+        comment.setCreated(LocalDateTime.now().truncatedTo((ChronoUnit.SECONDS)));
         comment.setAuthor(author);
         comment.setItem(item);
         return commentMapper.mapCommentToCommentDto(commentRepository.saveAndFlush(comment));
