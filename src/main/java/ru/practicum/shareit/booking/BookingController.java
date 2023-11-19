@@ -30,7 +30,6 @@ public class BookingController {
     @PostMapping
     public BookingDto create(@RequestHeader(USER_ID) @NotNull @Positive Long userId,
                              @RequestBody @Valid InputBookingDto dto) {
-        dto.setStatus("WAITING");
         return bookingService.create(userId, dto);
     }
 

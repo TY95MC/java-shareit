@@ -11,11 +11,12 @@ import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.InputItemDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Comment;
-import ru.practicum.shareit.item.model.CommentDtoCommentMapperImpl;
+import ru.practicum.shareit.item.model.CommentDtoCommentMapper;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.item.model.ItemMapper;
+import ru.practicum.shareit.item.model.ItemDtoItemMapper;
 import ru.practicum.shareit.item.repository.CommentRepository;
 import ru.practicum.shareit.item.repository.ItemRepository;
+import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
 import java.time.LocalDateTime;
@@ -32,15 +33,15 @@ public class ItemServiceImpl implements ItemService {
     private final UserRepository userRepository;
     private final CommentRepository commentRepository;
     private final BookingServiceImpl bookingService;
-    private final CommentDtoCommentMapperImpl commentMapper;
+    private final CommentDtoCommentMapper commentMapper;
+    private final ItemDtoItemMapper mapper;
 
     @Override
     public InputItemDto addNewItem(Long userId, InputItemDto dto) {
-        checkIfUserOrItemExists(userId, null);
-
         if (dto.getId() == null) {
-            Item item = ItemMapper.mapToItem(dto, userRepository.getReferenceById(userId));
-            return ItemMapper.mapToInputItemDto(itemRepository.saveAndFlush(item));
+            Item item = mapper.mapInputItemDtoToItem(dto);
+            item.setOwner(getUser(userId));
+            return mapper.mapItemToInputItemDto(itemRepository.saveAndFlush(item));
         }
 
         throw new EntityValidationException("Проверьте корректность данных новой вещи!");
@@ -48,8 +49,11 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public InputItemDto updateItem(Long userId, Long itemId, InputItemDto dto) {
-        checkIfUserOrItemExists(userId, itemId);
-        Item item = itemRepository.getReferenceById(itemId);
+        Item item = getItem(itemId);
+
+        if (!Objects.equals(item.getOwner().getId(), userId)) {
+            throw new EntityNotFoundException("Только владелец вещи может обновлять данные!");
+        }
 
         if (dto.getDescription() != null) {
             item.setDescription(dto.getDescription());
@@ -63,33 +67,33 @@ public class ItemServiceImpl implements ItemService {
             item.setAvailable(dto.getAvailable());
         }
 
-        return ItemMapper.mapToInputItemDto(itemRepository.saveAndFlush(item));
+        return mapper.mapItemToInputItemDto(itemRepository.saveAndFlush(item));
     }
 
     @Override
     public ItemDto getItem(Long userId, Long itemId) {
-        checkIfUserOrItemExists(userId, itemId);
-        Item item = itemRepository.getReferenceById(itemId);
+        getUser(userId);
+        Item item = getItem(itemId);
 
         if (Objects.equals(item.getOwner().getId(), userId)) {
-            return mapToItemDtoFull(ItemMapper.mapToItemDto(item));
+            return setBookings(mapper.mapItemToItemDto(item));
         } else {
-            return mapToItemDtoWithComments(ItemMapper.mapToItemDto(item));
+            return setComments(mapper.mapItemToItemDto(item));
         }
     }
 
     @Override
     public List<ItemDto> getItems(Long userId) {
-        checkIfUserOrItemExists(userId, null);
+        getUser(userId);
         return itemRepository.findAllByOwnerId(userId).stream()
-                .map(ItemMapper::mapToItemDto)
-                .map(this::mapToItemDtoFull)
+                .map(mapper::mapItemToItemDto)
+                .map(this::setBookings)
                 .collect(Collectors.toUnmodifiableList());
     }
 
     @Override
     public List<InputItemDto> findByText(Long userId, String text) {
-        checkIfUserOrItemExists(userId, null);
+        getUser(userId);
 
         if (text.isBlank() || text.isEmpty()) {
             return new ArrayList<>();
@@ -98,13 +102,14 @@ public class ItemServiceImpl implements ItemService {
         return itemRepository.search(text.toLowerCase())
                 .stream()
                 .filter(Item::getAvailable)
-                .map(ItemMapper::mapToInputItemDto)
+                .map(mapper::mapItemToInputItemDto)
                 .collect(Collectors.toUnmodifiableList());
     }
 
     @Override
     public CommentDto addComment(Long userId, Long itemId, CommentDto commentDto) {
-        checkIfUserOrItemExists(userId, itemId);
+        Item item = getItem(itemId);
+        User author = getUser(userId);
 
         if (bookingService.getBookingByBooker(userId, itemId) == null ||
                 bookingService.getBookingByBooker(userId, itemId).size() == 0) {
@@ -113,26 +118,27 @@ public class ItemServiceImpl implements ItemService {
 
         commentDto.setCreated(LocalDateTime.now());
         Comment comment = commentMapper.mapCommentDtoToComment(commentDto);
-        comment.setAuthor(userRepository.getReferenceById(userId));
-        comment.setItem(itemRepository.getReferenceById(itemId));
-        comment = commentRepository.saveAndFlush(comment);
-        return commentMapper.mapCommentToCommentDto(comment);
+        comment.setAuthor(author);
+        comment.setItem(item);
+        return commentMapper.mapCommentToCommentDto(commentRepository.saveAndFlush(comment));
     }
 
-    private void checkIfUserOrItemExists(Long userId, Long itemId) {
-        if (userId != null && !userRepository.existsById(userId)) {
-            throw new EntityNotFoundException("Пользователь не найден!");
-        }
-
-        if (itemId != null && !itemRepository.existsById(itemId)) {
-            throw new EntityNotFoundException("Вещь не найдена!");
-        }
+    private User getUser(Long userId) {
+        return userRepository.findById(userId).orElseThrow(
+                () -> new EntityNotFoundException("Пользователь не найден!")
+        );
     }
 
-    private ItemDto mapToItemDtoFull(ItemDto dto) {
+    private Item getItem(Long itemId) {
+        return itemRepository.findById(itemId).orElseThrow(
+                () -> new EntityNotFoundException("Вещь не найдена!")
+        );
+    }
+
+    private ItemDto setBookings(ItemDto dto) {
         BookingInfoDto last = bookingService.getLastBooking(dto.getId());
         BookingInfoDto next = bookingService.getNextBooking(dto.getId());
-        mapToItemDtoWithComments(dto);
+        setComments(dto);
 
         if (last != null) {
             dto.setLastBooking(last);
@@ -145,7 +151,7 @@ public class ItemServiceImpl implements ItemService {
         return dto;
     }
 
-    private ItemDto mapToItemDtoWithComments(ItemDto dto) {
+    private ItemDto setComments(ItemDto dto) {
         List<CommentDto> list = commentRepository.findAllByItemId(dto.getId())
                 .stream()
                 .map(commentMapper::mapCommentToCommentDto)

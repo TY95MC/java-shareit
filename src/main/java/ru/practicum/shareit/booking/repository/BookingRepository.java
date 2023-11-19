@@ -3,6 +3,7 @@ package ru.practicum.shareit.booking.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.booking.model.Status;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,9 +19,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findAllByBookerIdAndEndIsBeforeOrderByStartDesc(Long id, LocalDateTime end);
 
-    List<Booking> findAllByBookerIdAndStartIsAfterOrderByStartDesc(Long id, LocalDateTime end);
+    List<Booking> findAllByBookerIdAndStartIsAfterOrderByStartDesc(Long id, LocalDateTime start);
 
-    List<Booking> findAllByBookerIdAndStatusOrderByStartDesc(Long id, String status);
+    List<Booking> findAllByBookerIdAndStatusOrderByStartDesc(Long id, Status status);
 
     List<Booking> findAllByItemOwnerIdOrderByStartDesc(Long id);
 
@@ -32,13 +33,13 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findAllByItemOwnerIdAndStartIsAfterOrderByStartDesc(Long id, LocalDateTime start);
 
-    List<Booking> findAllByItemOwnerIdAndStatusOrderByStartDesc(Long id, String status);
+    List<Booking> findAllByItemOwnerIdAndStatusOrderByStartDesc(Long id, Status status);
 
     Optional<Booking> findFirstByItemIdAndStartAfterAndStatusOrderByStartAsc(Long itemId,
-                                                                             LocalDateTime start, String status);
+                                                                             LocalDateTime start, Status status);
 
     Optional<Booking> findFirstByItemIdAndStartBeforeAndStatusOrderByEndDesc(Long itemId,
-                                                                             LocalDateTime start, String status);
+                                                                             LocalDateTime start, Status status);
 
     Optional<List<Booking>> findByBookerIdAndItemIdAndEndBefore(Long bookerId, Long itemId, LocalDateTime end);
 }

@@ -32,8 +32,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto updateUser(UserDto dto) {
-        checkIfExistsById(dto.getId());
-        User user = repository.getReferenceById(dto.getId());
+        User user = getUser(dto.getId());
 
         if (dto.getName() != null) {
             user.setName(dto.getName());
@@ -48,8 +47,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto getUserById(Long id) {
-        checkIfExistsById(id);
-        return mapper.mapUserToUserDto(repository.getReferenceById(id));
+        return mapper.mapUserToUserDto(getUser(id));
     }
 
     @Override
@@ -61,14 +59,14 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteUserById(Long id) {
-        checkIfExistsById(id);
+        getUser(id);
         repository.deleteById(id);
         repository.flush();
     }
 
-    private void checkIfExistsById(Long id) {
-        if (!repository.existsById(id)) {
-            throw new EntityNotFoundException("Пользователя не существует!");
-        }
+    private User getUser(Long userId) {
+        return repository.findById(userId).orElseThrow(
+                () -> new EntityNotFoundException("Пользователь не найден!")
+        );
     }
 }
