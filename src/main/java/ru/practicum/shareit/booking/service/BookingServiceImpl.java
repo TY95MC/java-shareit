@@ -59,6 +59,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingDto approve(Long userId, Long bookingId, boolean approved) {
+        getUser(userId);
         Booking booking = getBooking(bookingId);
 
         if (booking.getStatus().equals(Status.APPROVED)) {
