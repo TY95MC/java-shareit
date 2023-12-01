@@ -16,6 +16,8 @@ import ru.practicum.shareit.item.dto.InputItemDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.request.dto.InputItemRequestDto;
+import ru.practicum.shareit.request.service.ItemRequestService;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.service.UserService;
 
@@ -37,11 +39,17 @@ class ItemServiceTest {
 
     private final UserService userService;
     private final ItemService itemService;
+    private final ItemRequestService itemRequestService;
     private final BookingService bookingService;
     private final EntityManager manager;
 
     InputItemDto inputItemDto = createInputItemDto("item1", "first_item");
-    InputItemDto inputFail = createInputItemDto("item2", "second_item");
+    InputItemDto inputItemDto2 = createInputItemDto("item2", "second_item");
+
+    InputItemRequestDto inputItemRequestDto = InputItemRequestDto
+            .builder()
+            .description("desc")
+            .build();
 
     UserDto owner = createUserDto("owner", "first@email.ru");
     UserDto booker = createUserDto("booker", "second@email.ru");
@@ -68,17 +76,36 @@ class ItemServiceTest {
         assertThat(item.getName(), equalTo(inputItemDto.getName()));
         assertThat(item.getDescription(), equalTo(inputItemDto.getDescription()));
         assertThat(item.getAvailable(), equalTo(inputItemDto.getAvailable()));
+
+        inputItemRequestDto = itemRequestService.post(owner.getId(), inputItemRequestDto);
+        inputItemDto2.setRequestId(inputItemRequestDto.getId());
+
+        inputItemDto2 = itemService.addNewItem(owner.getId(), inputItemDto2);
+
+        query = manager.createQuery("Select i from Item i where i.id = :id", Item.class);
+        item = query.setParameter("id", inputItemDto2.getId()).getSingleResult();
+
+        assertThat(item.getId(), equalTo(inputItemDto2.getId()));
+        assertThat(item.getName(), equalTo(inputItemDto2.getName()));
+        assertThat(item.getDescription(), equalTo(inputItemDto2.getDescription()));
+        assertThat(item.getAvailable(), equalTo(inputItemDto2.getAvailable()));
     }
 
     @Test
     void shouldFailAddNewItem() {
         Exception e = assertThrows(EntityNotFoundException.class,
-                () -> itemService.addNewItem(-1L, inputFail));
+                () -> itemService.addNewItem(-1L, inputItemDto2));
         assertThat(e.getMessage(), equalTo("Пользователь не найден!"));
 
         e = assertThrows(EntityNotFoundException.class,
-                () -> itemService.addNewItem(100L, inputFail));
+                () -> itemService.addNewItem(100L, inputItemDto2));
         assertThat(e.getMessage(), equalTo("Пользователь не найден!"));
+
+        inputItemDto2.setRequestId(10L);
+
+        e = assertThrows(EntityNotFoundException.class,
+                () -> itemService.addNewItem(owner.getId(), inputItemDto2));
+        assertThat(e.getMessage(), equalTo("Запрос не найден!"));
 
         inputItemDto.setId(10L);
 
@@ -114,6 +141,7 @@ class ItemServiceTest {
 
     @Test
     void shouldGetItemSuccessfully() {
+        generateNextAndLastBookings(inputItemDto.getId());
         ItemDto dto = itemService.getItem(owner.getId(), inputItemDto.getId());
 
         TypedQuery<Item> query = manager.createQuery("Select i from Item i where i.owner.id = :id", Item.class);
@@ -227,5 +255,27 @@ class ItemServiceTest {
                 .authorName(authorName)
                 .created(LocalDateTime.now())
                 .build();
+    }
+
+    private void generateNextAndLastBookings(Long itemId) {
+        InputBookingDto inputBookingDto = InputBookingDto.builder()
+                .start(LocalDateTime.now())
+                .end(LocalDateTime.now().plusNanos(1))
+                .itemId(itemId)
+                .build();
+        BookingDto dto = bookingService.create(booker.getId(), inputBookingDto);
+        bookingService.approve(owner.getId(), dto.getId(), true);
+
+        inputBookingDto.setStart(LocalDateTime.now().plusNanos(1));
+        inputBookingDto.setEnd(LocalDateTime.now().plusNanos(2));
+
+        dto = bookingService.create(booker.getId(), inputBookingDto);
+        bookingService.approve(owner.getId(), dto.getId(), true);
+
+        inputBookingDto.setStart(LocalDateTime.now().plusMinutes(1));
+        inputBookingDto.setEnd(LocalDateTime.now().plusMinutes(2));
+
+        dto = bookingService.create(booker.getId(), inputBookingDto);
+        bookingService.approve(owner.getId(), dto.getId(), true);
     }
 }

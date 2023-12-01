@@ -79,25 +79,41 @@ class BookingServiceTest {
         Exception e = assertThrows(EntityNotFoundException.class, () -> bookingService.create(-1L, dto));
         assertThat(e.getMessage(), equalTo("Пользователь не найден!"));
 
+        e = assertThrows(EntityNotFoundException.class, () -> bookingService.create(ownerDto.getId(), dto));
+        assertThat(e.getMessage(), equalTo("Владелец не может бронировать собственную вещь!"));
+
         e = assertThrows(EntityNotFoundException.class, () -> bookingService.create(100L, dto));
         assertThat(e.getMessage(), equalTo("Пользователь не найден!"));
 
         inputItemDto1.setAvailable(false);
         itemService.updateItem(ownerDto.getId(), inputItemDto1.getId(), inputItemDto1);
+
         e = assertThrows(EntityValidationException.class, () -> bookingService.create(bookerDto.getId(), dto));
         assertThat(e.getMessage(), equalTo("Вещь недоступна к бронированию!"));
 
         dto.setEnd(LocalDateTime.now().minusMonths(1));
+
         e = assertThrows(EntityValidationException.class, () -> bookingService.create(bookerDto.getId(), dto));
         assertThat(e.getMessage(), equalTo("Некорректные начало и конец!"));
+
+        inputBookingDto.setItemId(100L);
+        e = assertThrows(EntityNotFoundException.class, () -> bookingService.create(ownerDto.getId(), inputBookingDto));
+        assertThat(e.getMessage(), equalTo("Вещь не найдена!"));
     }
 
     @Test
     void shouldApproveSuccessfully() {
-        bookingService.approve(ownerDto.getId(), bookingDto.getId(), true);
+        bookingService.approve(ownerDto.getId(), bookingDto.getId(), false);
 
         TypedQuery<Booking> query = manager.createQuery("Select b from Booking b where b.id = :id", Booking.class);
         Booking booking = query.setParameter("id", bookingDto.getId()).getSingleResult();
+
+        assertThat(booking.getStatus(), equalTo(Status.REJECTED));
+
+        bookingService.approve(ownerDto.getId(), bookingDto.getId(), true);
+
+        query = manager.createQuery("Select b from Booking b where b.id = :id", Booking.class);
+        booking = query.setParameter("id", bookingDto.getId()).getSingleResult();
 
         assertThat(booking.getStatus(), equalTo(Status.APPROVED));
     }
