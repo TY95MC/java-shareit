@@ -1,6 +1,9 @@
 package ru.practicum.shareit.booking.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.dto.BookingDto;
@@ -84,6 +87,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingDto getBookingInfo(Long userId, Long bookingId) {
+        getUser(userId);
         Booking booking = getBooking(bookingId);
 
         if (Objects.equals(booking.getBooker().getId(), userId) ||
@@ -95,45 +99,46 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public List<BookingDto> getUserBookings(Long userId, String state) {
+    public List<BookingDto> getUserBookings(Long userId, String state, Integer from, Integer size) {
         State.checkState(state);
         getUser(userId);
         LocalDateTime now = LocalDateTime.now();
+        Pageable page = PageRequest.of(from / size, size, Sort.by(Sort.Direction.ASC, "id"));
 
         switch (State.valueOf(state)) {
             case ALL:
-                return bookingRepository.findAllByBookerIdOrderByStartDesc(userId)
+                return bookingRepository.findAllByBookerIdOrderByStartDesc(userId, page)
                         .stream()
                         .map(mapper::mapBookingToBookingDto)
                         .collect(Collectors.toUnmodifiableList());
 
             case CURRENT:
                 return bookingRepository.findAllByBookerIdAndStartIsBeforeAndEndIsAfterOrderByStartAsc(userId,
-                                now, now)
+                                now, now, page)
                         .stream()
                         .map(mapper::mapBookingToBookingDto)
                         .collect(Collectors.toUnmodifiableList());
 
             case PAST:
-                return bookingRepository.findAllByBookerIdAndEndIsBeforeOrderByStartDesc(userId, now)
+                return bookingRepository.findAllByBookerIdAndEndIsBeforeOrderByStartDesc(userId, now, page)
                         .stream()
                         .map(mapper::mapBookingToBookingDto)
                         .collect(Collectors.toUnmodifiableList());
 
             case FUTURE:
-                return bookingRepository.findAllByBookerIdAndStartIsAfterOrderByStartDesc(userId, now)
+                return bookingRepository.findAllByBookerIdAndStartIsAfterOrderByStartDesc(userId, now, page)
                         .stream()
                         .map(mapper::mapBookingToBookingDto)
                         .collect(Collectors.toUnmodifiableList());
 
             case WAITING:
-                return bookingRepository.findAllByBookerIdAndStatusOrderByStartDesc(userId, Status.WAITING)
+                return bookingRepository.findAllByBookerIdAndStatusOrderByStartDesc(userId, Status.WAITING, page)
                         .stream()
                         .map(mapper::mapBookingToBookingDto)
                         .collect(Collectors.toUnmodifiableList());
 
             case REJECTED:
-                return bookingRepository.findAllByBookerIdAndStatusOrderByStartDesc(userId, Status.REJECTED)
+                return bookingRepository.findAllByBookerIdAndStatusOrderByStartDesc(userId, Status.REJECTED, page)
                         .stream()
                         .map(mapper::mapBookingToBookingDto)
                         .collect(Collectors.toUnmodifiableList());
@@ -144,45 +149,46 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public List<BookingDto> getBookingsByOwner(Long userId, String state) {
+    public List<BookingDto> getBookingsByOwner(Long userId, String state, Integer from, Integer size) {
         State.checkState(state);
         getUser(userId);
         LocalDateTime now = LocalDateTime.now();
+        Pageable page = PageRequest.of(from / size, size, Sort.by(Sort.Direction.ASC, "id"));
 
         switch (State.valueOf(state)) {
             case ALL:
-                return bookingRepository.findAllByItemOwnerIdOrderByStartDesc(userId)
+                return bookingRepository.findAllByItemOwnerIdOrderByStartDesc(userId, page)
                         .stream()
                         .map(mapper::mapBookingToBookingDto)
                         .collect(Collectors.toUnmodifiableList());
 
             case CURRENT:
                 return bookingRepository.findAllByItemOwnerIdAndStartIsBeforeAndEndIsAfterOrderByStartDesc(userId,
-                                now, now)
+                                now, now, page)
                         .stream()
                         .map(mapper::mapBookingToBookingDto)
                         .collect(Collectors.toUnmodifiableList());
 
             case PAST:
-                return bookingRepository.findAllByItemOwnerIdAndEndIsBeforeOrderByStartDesc(userId, now)
+                return bookingRepository.findAllByItemOwnerIdAndEndIsBeforeOrderByStartDesc(userId, now, page)
                         .stream()
                         .map(mapper::mapBookingToBookingDto)
                         .collect(Collectors.toUnmodifiableList());
 
             case FUTURE:
-                return bookingRepository.findAllByItemOwnerIdAndStartIsAfterOrderByStartDesc(userId, now)
+                return bookingRepository.findAllByItemOwnerIdAndStartIsAfterOrderByStartDesc(userId, now, page)
                         .stream()
                         .map(mapper::mapBookingToBookingDto)
                         .collect(Collectors.toUnmodifiableList());
 
             case WAITING:
-                return bookingRepository.findAllByItemOwnerIdAndStatusOrderByStartDesc(userId, Status.WAITING)
+                return bookingRepository.findAllByItemOwnerIdAndStatusOrderByStartDesc(userId, Status.WAITING, page)
                         .stream()
                         .map(mapper::mapBookingToBookingDto)
                         .collect(Collectors.toUnmodifiableList());
 
             case REJECTED:
-                return bookingRepository.findAllByItemOwnerIdAndStatusOrderByStartDesc(userId, Status.REJECTED)
+                return bookingRepository.findAllByItemOwnerIdAndStatusOrderByStartDesc(userId, Status.REJECTED, page)
                         .stream()
                         .map(mapper::mapBookingToBookingDto)
                         .collect(Collectors.toUnmodifiableList());

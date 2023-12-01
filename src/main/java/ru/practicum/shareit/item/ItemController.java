@@ -1,6 +1,7 @@
 package ru.practicum.shareit.item;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,13 +19,17 @@ import ru.practicum.shareit.item.service.ItemService;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
 import java.util.List;
 
+import static ru.practicum.shareit.constants.Constants.FROM;
+import static ru.practicum.shareit.constants.Constants.SIZE;
 import static ru.practicum.shareit.constants.Constants.USER_ID;
 
 @RestController
 @RequestMapping("/items")
 @RequiredArgsConstructor
+@Validated
 public class ItemController {
     private final ItemService itemService;
 
@@ -48,14 +53,18 @@ public class ItemController {
     }
 
     @GetMapping
-    public List<ItemDto> get(@RequestHeader(USER_ID) @NotNull @Positive Long userId) {
-        return itemService.getItems(userId);
+    public List<ItemDto> get(@RequestHeader(USER_ID) @NotNull @Positive Long userId,
+                             @RequestParam(defaultValue = FROM) @PositiveOrZero Integer from,
+                             @RequestParam(defaultValue = SIZE) @Positive Integer size) {
+        return itemService.getItems(userId, from, size);
     }
 
     @GetMapping("/search")
     public List<InputItemDto> search(@RequestHeader(USER_ID) @NotNull @Positive Long userId,
-                                     @RequestParam String text) {
-        return itemService.findByText(userId, text);
+                                     @RequestParam String text,
+                                     @RequestParam(defaultValue = FROM) @PositiveOrZero Integer from,
+                                     @RequestParam(defaultValue = SIZE) @Positive Integer size) {
+        return itemService.findByText(userId, text, from, size);
     }
 
     @PostMapping("/{itemId}/comment")

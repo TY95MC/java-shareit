@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.user.model.User;
 
 import javax.persistence.Entity;
@@ -35,4 +36,8 @@ public class Item {
     @ToString.Exclude
     @JoinColumn(name = "owner_id", referencedColumnName = "id", nullable = false)
     private User owner;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @ToString.Exclude
+    @JoinColumn(name = "request_id", referencedColumnName = "id", nullable = false)
+    private ItemRequest request;
 }
