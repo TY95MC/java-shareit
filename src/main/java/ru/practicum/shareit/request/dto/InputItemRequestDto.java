@@ -17,7 +17,6 @@ import java.time.Instant;
 @Builder
 public class InputItemRequestDto {
     private Long id;
-    @NotNull
     @NotBlank
     private String description;
     private Instant created;
