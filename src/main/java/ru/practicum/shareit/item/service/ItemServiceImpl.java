@@ -1,6 +1,9 @@
 package ru.practicum.shareit.item.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.dto.BookingInfoDto;
@@ -16,6 +19,8 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.model.ItemDtoItemMapper;
 import ru.practicum.shareit.item.repository.CommentRepository;
 import ru.practicum.shareit.item.repository.ItemRepository;
+import ru.practicum.shareit.request.model.ItemRequest;
+import ru.practicum.shareit.request.repository.ItemRequestRepository;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
@@ -30,8 +35,9 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class ItemServiceImpl implements ItemService {
     private final ItemRepository itemRepository;
-    private final UserRepository userRepository;
     private final CommentRepository commentRepository;
+    private final ItemRequestRepository requestRepository;
+    private final UserRepository userRepository;
     private final BookingServiceImpl bookingService;
     private final CommentDtoCommentMapper commentMapper;
     private final ItemDtoItemMapper mapper;
@@ -40,7 +46,12 @@ public class ItemServiceImpl implements ItemService {
     public InputItemDto addNewItem(Long userId, InputItemDto dto) {
         if (dto.getId() == null) {
             Item item = mapper.mapInputItemDtoToItem(dto);
-            item.setOwner(getUser(userId));
+            User owner = getUser(userId);
+            if (dto.getRequestId() != null) {
+                ItemRequest request = getItemRequest(dto.getRequestId());
+                item.setRequest(request);
+            }
+            item.setOwner(owner);
             return mapper.mapItemToInputItemDto(itemRepository.saveAndFlush(item));
         }
 
@@ -49,6 +60,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public InputItemDto updateItem(Long userId, Long itemId, InputItemDto dto) {
+        getUser(userId);
         Item item = getItem(itemId);
 
         if (!Objects.equals(item.getOwner().getId(), userId)) {
@@ -83,23 +95,25 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public List<ItemDto> getItems(Long userId) {
+    public List<ItemDto> getItems(Long userId, Integer from, Integer size) {
         getUser(userId);
-        return itemRepository.findAllByOwnerId(userId).stream()
+        Pageable page = PageRequest.of(from / size, size, Sort.by(Sort.Direction.ASC, "id"));
+        return itemRepository.findAllByOwnerId(userId, page).stream()
                 .map(mapper::mapItemToItemDto)
                 .map(this::setBookings)
                 .collect(Collectors.toUnmodifiableList());
     }
 
     @Override
-    public List<InputItemDto> findByText(Long userId, String text) {
+    public List<InputItemDto> findByText(Long userId, String text, Integer from, Integer size) {
         getUser(userId);
 
         if (text.isBlank() || text.isEmpty()) {
             return new ArrayList<>();
         }
 
-        return itemRepository.search(text.toLowerCase())
+        Pageable page = PageRequest.of(from / size, size, Sort.by(Sort.Direction.ASC, "id"));
+        return itemRepository.search(text.toLowerCase(), page)
                 .stream()
                 .filter(Item::getAvailable)
                 .map(mapper::mapItemToInputItemDto)
@@ -132,6 +146,12 @@ public class ItemServiceImpl implements ItemService {
     private Item getItem(Long itemId) {
         return itemRepository.findById(itemId).orElseThrow(
                 () -> new EntityNotFoundException("Вещь не найдена!")
+        );
+    }
+
+    private ItemRequest getItemRequest(Long requestId) {
+        return requestRepository.findById(requestId).orElseThrow(
+                () -> new EntityNotFoundException("Запрос не найден!")
         );
     }
 
