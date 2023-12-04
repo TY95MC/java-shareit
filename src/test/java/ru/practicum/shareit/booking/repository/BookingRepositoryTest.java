@@ -1,6 +1,7 @@
 package ru.practicum.shareit.booking.repository;
 
 import lombok.RequiredArgsConstructor;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,6 +75,13 @@ class BookingRepositoryTest {
         pastBooking = bookingRepository.save(pastBooking);
         currentBooking = bookingRepository.save(currentBooking);
         futureBooking = bookingRepository.save(futureBooking);
+    }
+
+    @AfterEach
+    void clear() {
+        bookingRepository.deleteAll();
+        itemRepository.deleteAll();
+        userRepository.deleteAll();
     }
 
     @Test

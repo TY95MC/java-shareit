@@ -1,6 +1,7 @@
 package ru.practicum.shareit.item.repository;
 
 import lombok.RequiredArgsConstructor;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,6 +65,13 @@ class ItemRepositoryTest {
         item1 = itemRepository.save(item1);
         item2 = itemRepository.save(item2);
         item3 = itemRepository.save(item3);
+    }
+
+    @AfterEach
+    void clear() {
+        requestRepository.deleteAll();
+        itemRepository.deleteAll();
+        userRepository.deleteAll();
     }
 
     @Test

@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class ItemRequestServiceImpl implements ItemRequestService {
     private final ItemRequestRepository requestRepository;
@@ -42,7 +43,6 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<OutputItemRequestDto> getOwnRequests(Long userId) {
         getUser(userId);
         return mapper.itemRequestToOutputItemRequestDtos(requestRepository.findAllByRequestorIdOrderByRequestorIdDesc(userId))
@@ -52,7 +52,6 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<OutputItemRequestDto> getUsersRequests(Long userId, Integer from, Integer size) {
         getUser(userId);
         Pageable page = PageRequest.of(from / size, size, Sort.by(Sort.Direction.ASC, "created"));
@@ -63,7 +62,6 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public OutputItemRequestDto getRequest(Long userId, Long requestId) {
         getUser(userId);
         return setRequestItems(
