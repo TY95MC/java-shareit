@@ -10,7 +10,6 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
 import ru.practicum.shareit.client.BaseClient;
 import ru.practicum.shareit.request.dto.InputItemRequestDto;
 
-import java.time.Instant;
 import java.util.Map;
 
 import static ru.practicum.shareit.constants.Constants.SERVER_URL;
@@ -30,7 +29,6 @@ public class ItemRequestClient extends BaseClient {
     }
 
     public ResponseEntity<Object> postRequest(Long userId, InputItemRequestDto dto) {
-        dto.setCreated(Instant.now());
         return post("", userId, dto);
     }
 

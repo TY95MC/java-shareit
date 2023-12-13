@@ -12,11 +12,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import ru.practicum.shareit.exception.EntityValidationException;
 import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.validation.OnCreate;
 
 import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 
 @RestController
@@ -28,23 +27,21 @@ public class UserController {
     private final UserClient userClient;
 
     @PostMapping
+    @Validated({OnCreate.class})
     public ResponseEntity<Object> addUser(@RequestBody @Valid UserDto dto) {
-        if (dto.getId() != null) {
-            throw new EntityValidationException("Новый пользователь не может иметь ID!");
-        }
         log.info("Gateway. Adding new user.");
         return userClient.addNewUser(dto);
     }
 
     @PatchMapping("/{userId}")
-    public ResponseEntity<Object> updateUser(@PathVariable @NotNull @Positive Long userId, @RequestBody UserDto dto) {
+    public ResponseEntity<Object> updateUser(@PathVariable @Positive long userId, @RequestBody UserDto dto) {
         log.info("Gateway. Updating userId={}.", userId);
         dto.setId(userId);
         return userClient.updateUser(dto);
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<Object> getUserById(@PathVariable @NotNull @Positive Long userId) {
+    public ResponseEntity<Object> getUserById(@PathVariable @Positive long userId) {
         log.info("Gateway. Searching by id={}.", userId);
         return userClient.getUserById(userId);
     }
@@ -56,7 +53,7 @@ public class UserController {
     }
 
     @DeleteMapping("/{userId}")
-    public void deleteUserById(@PathVariable @NotNull @Positive Long userId) {
+    public void deleteUserById(@PathVariable @Positive long userId) {
         log.info("Gateway. Deleting by id={}.", userId);
         userClient.deleteUserById(userId);
     }

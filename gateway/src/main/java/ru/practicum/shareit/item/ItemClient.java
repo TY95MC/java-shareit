@@ -12,7 +12,6 @@ import ru.practicum.shareit.client.BaseClient;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.InputItemDto;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -66,7 +65,6 @@ public class ItemClient extends BaseClient {
     }
 
     public ResponseEntity<Object> addComment(Long userId, Long itemId, CommentDto dto) {
-        dto.setCreated(LocalDateTime.now());
         return post("/" + itemId + "/comment", userId, dto);
     }
 }

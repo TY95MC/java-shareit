@@ -18,7 +18,6 @@ import ru.practicum.shareit.booking.dto.State;
 import ru.practicum.shareit.exception.EntityValidationException;
 
 import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;
 
@@ -36,7 +35,7 @@ public class BookingController {
     private final BookingClient bookingClient;
 
     @PostMapping
-    public ResponseEntity<Object> bookItem(@RequestHeader(USER_ID) @NotNull @Positive Long userId,
+    public ResponseEntity<Object> bookItem(@RequestHeader(USER_ID) @Positive long userId,
                                            @RequestBody @Valid InputBookingDto dto) {
         if (dto.getStart().equals(dto.getEnd()) || dto.getStart().isAfter(dto.getEnd())) {
             throw new EntityValidationException("Некорректные начало и конец!");
@@ -46,35 +45,35 @@ public class BookingController {
     }
 
     @PatchMapping("/{bookingId}")
-    public ResponseEntity<Object> approveBooking(@RequestHeader(USER_ID) @NotNull @Positive Long userId,
-                                                 @PathVariable @NotNull @Positive Long bookingId,
+    public ResponseEntity<Object> approveBooking(@RequestHeader(USER_ID) @Positive long userId,
+                                                 @PathVariable @Positive long bookingId,
                                                  @RequestParam boolean approved) {
         log.info("Gateway. Approving bookingId={}, userId={}", bookingId, userId);
         return bookingClient.approveBooking(userId, bookingId, approved);
     }
 
     @GetMapping("/{bookingId}")
-    public ResponseEntity<Object> getBooking(@RequestHeader(USER_ID) @NotNull @Positive Long userId,
-                                             @PathVariable @NotNull @Positive Long bookingId) {
+    public ResponseEntity<Object> getBooking(@RequestHeader(USER_ID) @Positive long userId,
+                                             @PathVariable @Positive long bookingId) {
         log.info("Gateway. Get booking by id={}, userId={}", bookingId, userId);
         return bookingClient.getBookingById(userId, bookingId);
     }
 
     @GetMapping("/owner")
-    public ResponseEntity<Object> getBookingsByOwner(@RequestHeader(USER_ID) @NotNull @Positive Long userId,
+    public ResponseEntity<Object> getBookingsByOwner(@RequestHeader(USER_ID) @Positive long userId,
                                                      @RequestParam(defaultValue = "ALL") String state,
-                                                     @RequestParam(defaultValue = FROM) @PositiveOrZero Integer from,
-                                                     @RequestParam(defaultValue = SIZE) @Positive Integer size) {
+                                                     @RequestParam(defaultValue = FROM) @PositiveOrZero int from,
+                                                     @RequestParam(defaultValue = SIZE) @Positive int size) {
         State.checkState(state);
         log.info("Gateway. Get bookings by owner with state {}, userId={}, from={}, size={}", state, userId, from, size);
         return bookingClient.getBookingsByOwner(userId, state, from, size);
     }
 
     @GetMapping
-    public ResponseEntity<Object> getBookings(@RequestHeader(USER_ID) @NotNull @Positive Long userId,
+    public ResponseEntity<Object> getBookings(@RequestHeader(USER_ID) @Positive long userId,
                                               @RequestParam(name = "state", defaultValue = "ALL") String state,
-                                              @PositiveOrZero @RequestParam(name = "from", defaultValue = FROM) @PositiveOrZero Integer from,
-                                              @Positive @RequestParam(name = "size", defaultValue = SIZE) @Positive Integer size) {
+                                              @PositiveOrZero @RequestParam(name = "from", defaultValue = FROM) @PositiveOrZero int from,
+                                              @Positive @RequestParam(name = "size", defaultValue = SIZE) @Positive int size) {
         State.checkState(state);
         log.info("Gateway. Get bookings with state {}, userId={}, from={}, size={}", state, userId, from, size);
         return bookingClient.getBookings(userId, state, from, size);
